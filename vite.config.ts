@@ -3,6 +3,6 @@ import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/patient-chart-system/',
+  base: '/qiholeinone-new-patient-chart/',
   plugins: [react()],
 })
