@@ -1,98 +1,35 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import type { PatientData, ChiefComplaintData, MedicalHistoryData, ReviewOfSystemsData, TongueData } from '../types';
-
-interface InputFieldProps {
-  label: string;
-  id: string;
-  name?: string;
-  value: string;
-  onChange: (_e: React.ChangeEvent<HTMLInputElement>) => void;
-  placeholder?: string;
-  type?: string;
-  unit?: string;
-  required?: boolean;
-  className?: string;
-  readOnly?: boolean;
-  disabled?: boolean;
-}
-
-const InputField: React.FC<InputFieldProps> = ({ label, id, name, value, onChange, placeholder, type = 'text', unit, required, className='', readOnly=false, disabled=false }) => (
-  <div className={className}>
-    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
-      {label} {required && <span className="text-red-500">*</span>}
-    </label>
-    <div className="relative">
-      <input
-        type={type}
-        id={id}
-        name={name || id}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        readOnly={readOnly}
-        disabled={disabled}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm read-only:bg-gray-100 read-only:cursor-not-allowed disabled:bg-gray-100 disabled:cursor-not-allowed"
-      />
-      {unit && (
-        <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-500">
-          {unit}
-        </span>
-      )}
-    </div>
-  </div>
-);
-
-interface CheckboxGroupProps {
-    options: {value: string, label: string}[];
-    selected: string[];
-    onChange: (value: string, checked: boolean) => void;
-    gridCols?: string;
-}
-
-const CheckboxGroup: React.FC<CheckboxGroupProps> = ({ options, selected, onChange, gridCols = 'grid-cols-2 md:grid-cols-3' }) => (
-    <div className={`grid ${gridCols} gap-x-6 gap-y-2`}>
-        {options.map(({value, label}) => (
-            <div key={value} className="flex items-center">
-                <input
-                    type="checkbox"
-                    id={value.replace(/\s/g, '')}
-                    value={value}
-                    checked={selected.includes(value)}
-                    onChange={(e) => onChange(value, e.target.checked)}
-                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                />
-                <label htmlFor={value.replace(/\s/g, '')} className="ml-2 text-sm text-gray-600">{label}</label>
-            </div>
-        ))}
-    </div>
-);
-
-interface RadioGroupProps {
-    options: { value: string; label: string }[];
-    name: string;
-    selectedValue: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    className?: string;
-}
-
-const RadioGroup: React.FC<RadioGroupProps> = ({ options, name, selectedValue, onChange, className = "flex flex-wrap gap-x-4 gap-y-2" }) => (
-    <div className={className}>
-        {options.map(({ value, label }) => (
-            <label key={value} className="flex items-center text-sm">
-                <input
-                    type="radio"
-                    name={name}
-                    value={value}
-                    checked={selectedValue === value}
-                    onChange={onChange}
-                    className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                />
-                <span className="ml-2 text-gray-700">{label}</span>
-            </label>
-        ))}
-    </div>
-);
+import { InputField } from './ui/InputField';
+import { CheckboxGroup } from './ui/CheckboxGroup';
+import { RadioGroup } from './ui/RadioGroup';
+import { FormSection } from './ui/FormSection';
+import {
+  commonComplaints,
+  baseAggravatingFactors,
+  baseAlleviatingFactors,
+  painQualities,
+  basePossibleCauses,
+  pastMedicalHistoryOptions,
+  medicationOptions,
+  familyHistoryOptions,
+  allergyOptions,
+  tongueBodyColorOptions,
+  tongueBodyShapeOptions,
+  tongueCoatingColorOptions,
+  tongueCoatingQualityOptions,
+  tongueLocationOptions,
+  otherTreatmentOptions,
+  severityOptions,
+  frequencyOptions,
+  onsetUnitOptions,
+  heartRhythmOptions,
+  lungSoundOptions,
+  sexOptions,
+  respondToCareStatusOptions,
+  eightPrinciplesOptions
+} from '../constants/formOptions';
+import { getActiveLocationSuggestions, getFollowUpOptions, updateCptCodes } from '../utils/formHelpers';
 
 
 interface PatientFormProps {
@@ -102,65 +39,7 @@ interface PatientFormProps {
   mode: 'new' | 'edit';
 }
 
-const commonComplaints = [
-    {value: 'Neck Pain', label: 'Neck Pain'}, {value: 'Shoulder Pain', label: 'Shoulder Pain'}, {value: 'Back Pain', label: 'Back Pain'}, {value: 'Knee Pain', label: 'Knee Pain'}, {value: 'Headache', label: 'Headache'}, {value: 'Migraine', label: 'Migraine'},
-    {value: 'Insomnia', label: 'Insomnia'}, {value: 'Digestive Issues', label: 'Digestive Issues'}, {value: 'Fatigue / Lethargy', label: 'Fatigue / Lethargy'}, {value: 'Menstrual Issues', label: 'Menstrual Issues'},
-    {value: 'Numbness / Tingling', label: 'Numbness / Tingling'}
-];
-const baseAggravatingFactors = [
-    {value: 'Prolonged Sitting / Standing', label: 'Prolonged Sitting / Standing'}, {value: 'Lifting Heavy Objects', label: 'Lifting Heavy Objects'}, {value: 'Stairs / Weight Bearing', label: 'Stairs / Weight Bearing'},
-    {value: 'Specific Postures', label: 'Specific Postures'}, {value: 'Weather Changes', label: 'Weather Changes'}
-];
-const baseAlleviatingFactors = [
-    {value: 'Rest / Lying Down', label: 'Rest / Lying Down'}, {value: 'Stretching / Light Exercise', label: 'Stretching / Light Exercise'}, {value: 'Warm Packs / Shower', label: 'Warm Packs / Shower'},
-    {value: 'Massage / Acupressure', label: 'Massage / Acupressure'}, {value: 'Medication', label: 'Medication'}
-];
-const painQualities = [
-    {value: 'Sharp', label: 'Sharp'}, {value: 'Dull', label: 'Dull'}, {value: 'Burning', label: 'Burning'}, {value: 'Throbbing', label: 'Throbbing'}, {value: 'Tingling', label: 'Tingling'}, {value: 'Numb', label: 'Numb'}, {value: 'Stiff', label: 'Stiff'}, {value: 'Aching', label: 'Aching'}
-];
-const basePossibleCauses = [
-    {value: 'Traffic Accident', label: 'Traffic Accident'}, {value: 'Fall / Slip', label: 'Fall / Slip'}, {value: 'Overwork / Repetitive Labor', label: 'Overwork / Repetitive Labor'}, {value: 'Excessive Exercise', label: 'Excessive Exercise'},
-    {value: 'Poor Posture', label: 'Poor Posture'}, {value: 'Lifting / Sudden Movements', label: 'Lifting / Sudden Movements'}, {value: 'Poor Sleeping Posture', label: 'Poor Sleeping Posture'}, {value: 'Exposure to Cold / Damp', label: 'Exposure to Cold / Damp'},
-    {value: 'Degenerative Changes', label: 'Degenerative Changes'}, {value: 'Post-Injury / Surgery', label: 'Post-Injury / Surgery'}
-];
 
-const complaintLocationMap: { [key: string]: string[] } = {
-    'Neck Pain': ['Left', 'Right', 'Upper', 'Lower'],
-    'Shoulder Pain': ['Left', 'Right', 'Both'],
-    'Back Pain': ['Upper', 'Middle', 'Lower', 'Left', 'Right'],
-    'Knee Pain': ['Left', 'Right', 'Both'],
-    'Headache': ['Frontal', 'Temporal', 'Occipital', 'Parietal'],
-    'Numbness / Tingling': ['Hands', 'Feet', 'Arms', 'Legs']
-};
-
-const pastMedicalHistoryOptions = [
-    {value: 'Hypertension', label: 'Hypertension'}, {value: 'Diabetes Mellitus', label: 'Diabetes Mellitus'}, {value: 'Hyperlipidemia', label: 'Hyperlipidemia'}, {value: 'Heart Disease', label: 'Heart Disease'}, {value: 'Cerebrovascular Disease', label: 'Cerebrovascular Disease'},
-    {value: 'Asthma / COPD', label: 'Asthma / COPD'}, {value: 'GI Disease', label: 'GI Disease'}, {value: 'Liver Disease', label: 'Liver Disease'}, {value: 'Kidney Disease', label: 'Kidney Disease'}, {value: 'Cancer', label: 'Cancer'}
-];
-const medicationOptions = [
-    {value: 'Antihypertensives', label: 'Antihypertensives'}, {value: 'Antidiabetics', label: 'Antidiabetics'}, {value: 'Statins (Cholesterol)', label: 'Statins (Cholesterol)'}, {value: 'Heart Medication', label: 'Heart Medication'}, {value: 'Blood Thinners', label: 'Blood Thinners'},
-    {value: 'GI Medication', label: 'GI Medication'}, {value: 'NSAIDs', label: 'NSAIDs'}, {value: 'Thyroid Medication', label: 'Thyroid Medication'}, {value: 'Hormones', label: 'Hormones'}, {value: 'Psychiatric Meds', label: 'Psychiatric Meds'}
-];
-const familyHistoryOptions = [
-    {value: 'Hypertension', label: 'Hypertension'}, {value: 'Diabetes', label: 'Diabetes'}, {value: 'Heart Disease', label: 'Heart Disease'}, {value: 'Stroke', label: 'Stroke'}, {value: 'Hyperlipidemia', label: 'Hyperlipidemia'},
-    {value: 'Cancer', label: 'Cancer'}, {value: 'Tuberculosis', label: 'Tuberculosis'}, {value: 'Liver Disease', label: 'Liver Disease'}, {value: 'Alcoholism', label: 'Alcoholism'}, {value: 'Psychiatric Illness', label: 'Psychiatric Illness'}
-];
-const allergyOptions = [
-    {value: 'Penicillin', label: 'Penicillin'}, {value: 'Aspirin', label: 'Aspirin'}, {value: 'NSAIDs', label: 'NSAIDs'}, {value: 'Anesthetics', label: 'Anesthetics'}, {value: 'Contrast Media', label: 'Contrast Media'},
-    {value: 'Seafood', label: 'Seafood'}, {value: 'Peanuts', label: 'Peanuts'}, {value: 'Eggs', label: 'Eggs'}, {value: 'Milk', label: 'Milk'}, {value: 'Other Medications', label: 'Other Medications'}
-];
-
-const tongueBodyColorOptions = ['Pale', 'Pink', 'Red', 'Dark Red', 'Purple', 'Reddish Purple', 'Bluish Purple', 'Red Tip', 'Redder side', 'Orange side', 'Purple side'].map(o => ({value: o, label: o}));
-const tongueBodyShapeOptions = ['Stiff', 'Long', 'Flaccid', 'Cracked', 'Swollen', 'Short', 'Rolled up or Down', 'Ulcerate', 'Tooth-marked', 'Half Swollen', 'Thin', 'Thick', 'Narrow', 'Deviation', 'Trembling', 'Normal'].map(o => ({value: o, label: o}));
-const tongueCoatingColorOptions = ['White', 'Yellow', 'Gray', 'Black', 'Greenish', 'Half White or Yellow'].map(o => ({value: o, label: o}));
-const tongueCoatingQualityOptions = ['Thin', 'Thick', 'Scanty', 'None', 'Dry', 'Wet', 'Slippery', 'Greasy', 'Rough', 'Sticky', 'Graphic', 'Mirror'].map(o => ({value: o, label: o}));
-const tongueLocationOptions = ['Heart (Tip)', 'Lung (Upper-mid)', 'Stomach/Spleen (Center)', 'Liver/Gallbladder (Sides)', 'Kidney/Bladder (Root)'].map(o => ({value: o, label: o}));
-
-const otherTreatmentOptions = [
-    {value: 'None', label: 'None'}, {value: 'Tui-Na', label: 'Tui-Na'}, {value: 'Acupressure', label: 'Acupressure'}, {value: 'Moxa', label: 'Moxa'},
-    {value: 'Cupping', label: 'Cupping'}, {value: 'Electro Acupuncture', label: 'Electro Acupuncture'}, {value: 'Heat Pack', label: 'Heat Pack'},
-    {value: 'Auricular Acupuncture', label: 'Auricular Acupuncture / Ear Seeds'}, {value: 'Other', label: 'Other'}
-];
 
 export const PatientForm: React.FC<PatientFormProps> = ({ initialData, onSubmit, onBack, mode }) => {
   const [formData, setFormData] = useState<PatientData>(initialData);
@@ -188,19 +67,19 @@ export const PatientForm: React.FC<PatientFormProps> = ({ initialData, onSubmit,
 
   const aggravatingFactors = useMemo(() => {
     return isFollowUp 
-      ? [{value: 'Same as before', label: 'Same as before'}, ...baseAggravatingFactors] 
+      ? getFollowUpOptions(baseAggravatingFactors)
       : baseAggravatingFactors;
   }, [isFollowUp]);
 
   const alleviatingFactors = useMemo(() => {
     return isFollowUp
-      ? [{value: 'Same as before', label: 'Same as before'}, ...baseAlleviatingFactors]
+      ? getFollowUpOptions(baseAlleviatingFactors)
       : baseAlleviatingFactors;
   }, [isFollowUp]);
 
   const possibleCauses = useMemo(() => {
     return isFollowUp
-      ? [{value: 'Same as before', label: 'Same as before'}, ...basePossibleCauses]
+      ? getFollowUpOptions(basePossibleCauses)
       : basePossibleCauses;
   }, [isFollowUp]);
 
@@ -364,13 +243,7 @@ export const PatientForm: React.FC<PatientFormProps> = ({ initialData, onSubmit,
 
 
   const activeLocationSuggestions = useMemo(() => {
-    const suggestions = new Set<string>();
-    formData.chiefComplaint.selectedComplaints.forEach(complaint => {
-      if (complaintLocationMap[complaint]) {
-        complaintLocationMap[complaint].forEach(sugg => suggestions.add(sugg));
-      }
-    });
-    return Array.from(suggestions);
+    return getActiveLocationSuggestions(formData.chiefComplaint.selectedComplaints);
   }, [formData.chiefComplaint.selectedComplaints]);
   
   const handleLungRateChange = (increment: boolean) => {
@@ -515,33 +388,15 @@ Generate the HPI paragraph below:
   const handleOtherTreatmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    setFormData(prev => {
-        const baseCpt = isFollowUp ? ['99212', '97813', '97814'] : ['99202', '97810', '97811', '97026'];
-        const manualCode = '97140';
-        
-        let newCptSet = new Set(baseCpt);
-
-        if (value !== 'Acupressure' && value !== 'None' && value !== '') {
-            newCptSet.add(manualCode);
+    setFormData(prev => ({
+        ...prev,
+        diagnosisAndTreatment: {
+            ...prev.diagnosisAndTreatment,
+            [name]: value,
+            cpt: updateCptCodes(prev.diagnosisAndTreatment.cpt, value, isFollowUp)
         }
-        
-        const existingCpt = prev.diagnosisAndTreatment.cpt.split(',').map(c => c.trim()).filter(Boolean);
-        existingCpt.forEach(code => {
-            if (!baseCpt.includes(code) && code !== manualCode) {
-                newCptSet.add(code);
-            }
-        });
-
-        return {
-            ...prev,
-            diagnosisAndTreatment: {
-                ...prev.diagnosisAndTreatment,
-                [name]: value,
-                cpt: Array.from(newCptSet).join(', ')
-            }
-        };
-    });
-};
+    }));
+  };
 
   const handleEightPrincipleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
