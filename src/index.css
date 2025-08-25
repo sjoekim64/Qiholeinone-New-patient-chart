@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.break-inside-avoid {
+    page-break-inside: avoid;
+}
+
+.print-footer {
+    display: none; /* Hidden by default */
+}
+
+.chart-section {
+    border-bottom: 2px solid black;
+}
+.chart-content > .chart-section:last-child {
+    border-bottom: none;
+}
+
+@media print {
+    body {
+        background-color: white;
+    }
+    #root > div {
+        padding: 0;
+    }
+    #print-area {
+        box-shadow: none;
+        border-radius: 0;
+        padding: 0;
+        margin: 0;
+        max-width: 100%;
+        border: none !important;
+    }
+    .chart-content {
+        border: 2px solid black;
+    }
+    .print-footer {
+        display: block;
+        position: fixed;
+        bottom: 15px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 9pt;
+        color: #666;
+    }
+    .page-number::after {
+        content: "Page " counter(page);
+    }
+    /* Ensure clean page breaks */
+    .break-before-page {
+        page-break-before: always;
+    }
+    .break-after-page {
+        page-break-after: always;
+    }
+    .break-inside-avoid {
+        page-break-inside: avoid;
+    }
+}
