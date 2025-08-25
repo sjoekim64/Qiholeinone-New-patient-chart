@@ -30,6 +30,7 @@ import {
   eightPrinciplesOptions
 } from '../constants/formOptions';
 import { getActiveLocationSuggestions, getFollowUpOptions, updateCptCodes } from '../utils/formHelpers';
+import { generateDiagnosis, generateHPI } from '../utils/api';
 
 
 interface PatientFormProps {
@@ -268,9 +269,14 @@ export const PatientForm: React.FC<PatientFormProps> = ({ initialData, onSubmit,
     
 
     try {
-        // Note: AI functionality requires proper API key configuration
-        // For now, we'll just show a message
-        alert("AI diagnosis generation requires API key configuration. Please set up your Google GenAI API key.");
+        const diagnosis = await generateDiagnosis(patientSummary);
+        setFormData(prev => ({
+            ...prev,
+            diagnosisAndTreatment: {
+                ...prev.diagnosisAndTreatment,
+                diagnosis: diagnosis
+            }
+        }));
     } catch (error) {
         console.error("Error generating diagnosis:", error);
         alert("Failed to generate AI diagnosis. Please check the console for errors.");
@@ -341,14 +347,16 @@ Generate the HPI paragraph below:
 `;
 
     try {
-        // Note: AI functionality requires proper API key configuration
-        // For now, we'll just show a message
-        alert("AI HPI generation requires API key configuration. Please set up your Google GenAI API key.");
+        const hpiText = await generateHPI(formData.chiefComplaint, {
+            age: formData.age,
+            sex: formData.sex,
+            fileNo: formData.fileNo
+        });
         const updatedData = {
             ...formData,
             chiefComplaint: {
                 ...formData.chiefComplaint,
-                presentIllness: "Please fill in the Present Illness manually.",
+                presentIllness: hpiText,
             }
         };
         onSubmit(updatedData);

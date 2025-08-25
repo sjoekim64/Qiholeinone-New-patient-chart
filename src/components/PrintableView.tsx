@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { PatientData } from '../types';
+import { generateSoapNote } from '../utils/api';
 
 
 
@@ -30,9 +31,8 @@ export const PrintableView: React.FC<PrintableViewProps> = ({ data, onEdit, onGo
 
 
     try {
-        // Note: In a real app, you'd need to handle API keys properly
-        // For now, we'll just set a placeholder message
-        setSoapNote("SOAP note generation requires proper API key configuration. Please set up your Google GenAI API key.");
+        const soapNoteText = await generateSoapNote(data);
+        setSoapNote(soapNoteText);
     } catch (error) {
         console.error("Error generating SOAP note:", error);
         setSoapNote("Failed to generate SOAP note. Please check the console for details.");
